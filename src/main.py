@@ -1,9 +1,13 @@
 from prayer_api import get_prayer_times
 from time_utils import get_next_prayer
+from config import load_settings, save_settings
 
 def main():
-    city = input("Enter city (default Ottawa): ") or "Ottawa"
-    country = input("Enter country (default Canda): ") or "Canada"
+    settings = load_settings()
+
+    city = settings["city"]
+    country = settings["country"]
+    method = settings["method"]
 
     prayer_times = get_prayer_times(city, country)
 
