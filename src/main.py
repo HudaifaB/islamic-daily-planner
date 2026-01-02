@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from prayer_api import get_prayer_times
 from time_utils import get_next_prayer
-from config import load_settings, save_settings
+from config import load_settings, save_settings, DEFAULT_SETTINGS
 
 def print_prayer_times(title: str, prayer_times: dict):
     '''
@@ -30,7 +30,7 @@ def show_today(settings: dict):
     # Next prayer logic (accurate tomorrow fajr if needed)
     next_prayer, time_remaining = get_next_prayer(today_times, today_date, now)
 
-    if "tomorrow" in next_prayer:
+    if next_prayer.startswith("Fajr (tomorrow approx)"):
         tomorrow_date = today_date + timedelta(days=1)
         tomorrow_times = get_prayer_times(
             settings["city"], settings["country"],
@@ -56,25 +56,36 @@ def show_tomorrow(settings: dict):
     )
     print_prayer_times("Tomorrow's Prayer Times", tomorrow_times)
 
+def show_settings(settings: dict):
+    '''
+    Prints the current settings (Location and calculation method).
+    '''
+    print("\nCurrent Settings:")
+    print("-" * 17)
+    print(f"City: {settings['city']}")
+    print(f"Country: {settings['country']}")
+    print(f"Calculation Method: {settings['method']}")
+
 def change_location(settings: dict):
     '''
     Changes location or keeps current location.
     '''
     print("\nChange location (press Enter to keep current)")
-    city = input(f"City [Current: {settings['city']}]: ").strip()
-    country = input(f"Country [Current: {settings['country']}]: ").strip()
+    city = input(f"City [Current: {settings['city']}]: ").strip().title()
+    country = input(f"Country [Current: {settings['country']}]: ").strip().title()
 
     if city:
-        city = city[0].upper() + city[1:] # Capitalize first letter
         settings["city"] = city
     if country:
-        country = country[0].upper() + country[1:] # Capitalize first letter
         settings["country"] = country
     
     save_settings(settings)
-    print("Saved location.")
+    print("✅ Saved location.")
 
 def change_method(settings: dict):
+    '''
+    Changes prayer calculation method.
+    '''
     print("\nCalculation method (AlAdhan 'method' parameter)")
     print("Common examples:")
     print("  2  = ISNA (North America)")
@@ -89,7 +100,7 @@ def change_method(settings: dict):
 
     raw = input(f"Enter method number [Current: {settings['method']}]: ").strip()
     if not raw:
-        print("Kept current calculation method.")
+        print("✅ Kept current calculation method.")
         return
     
     try:
@@ -98,9 +109,26 @@ def change_method(settings: dict):
             raise ValueError
         settings["method"] = method
         save_settings(settings)
-        print("Saved calculation method.")
+        print("✅ Saved calculation method.")
     except ValueError:
-        print("Please enter a valid positive integer method number.")
+        print("❌ Please enter a valid positive integer method number.")
+
+def reset_settings():
+    '''
+    Resets the current settings to default settings.
+    '''
+    is_confirmed = input("\nAre you sure you want to reset settings to default? (Y/N) ").upper()
+
+    while True:
+        if is_confirmed == "Y":
+            save_settings(DEFAULT_SETTINGS.copy())
+            print("✅ Settings have been reset to default.")
+            return
+        elif is_confirmed == "N":
+            print("✅ Keeping current settings.")
+            return
+        else:
+            is_confirmed = input("❌ Please enter either Y or N: ")
 
 def menu():
     settings = load_settings()
@@ -110,28 +138,35 @@ def menu():
         print(f"Location: {settings['city']}, {settings['country']} | Method: {settings['method']}")
         print("1) Show today's prayer times")
         print("2) Show tomorrow's prayer times")
-        print("3) Change location")
-        print("4) Change calculation method")
-        print("5) Exit")
+        print("3) Show current settings")
+        print("4) Change location")
+        print("5) Change calculation method")
+        print("6) Reset settings to default")
+        print("7) Exit")
 
-        choice = input("Choose an option above (1-5): ").strip()
+        choice = input("Choose an option above (1-7): ").strip()
 
         if choice == "1":
             show_today(settings)
         elif choice == "2":
             show_tomorrow(settings)
         elif choice == "3":
+            show_settings(settings)
+        elif choice == "4":
             change_location(settings)
             # reload settings in case settings were changed
             settings = load_settings()
-        elif choice == "4":
+        elif choice == "5":
             change_method(settings)
             settings = load_settings()
-        elif choice == "5":
-            print("Exiting program.")
+        elif choice == "6":
+            reset_settings()
+            settings = load_settings()
+        elif choice == "7":
+            print("✅ Exiting program.")
             break
         else:
-            print("Invalid choice. Please enter a number from 1-5.")
+            print("Invalid choice. Please enter a number from 1-7.")
 
 if __name__ == "__main__":
     menu()
